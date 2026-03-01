@@ -1534,7 +1534,7 @@ public:
             // 0. Compute Filter Bitmap (Shared)
             std::optional<ndd::RoaringBitmap> active_filter_bitmap;
             if (!filter_array.empty()) {
-                 active_filter_bitmap = entry.vector_storage->filter_store_->computeFilterBitmap(filter_array);
+                active_filter_bitmap = entry.vector_storage->filter_store_->computeFilterBitmap(filter_array);
             }
 
             // 1. Sparse Search (Async)
