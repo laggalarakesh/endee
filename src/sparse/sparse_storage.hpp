@@ -251,7 +251,10 @@ namespace ndd {
             return txn->commit();
         }
 
-        std::vector<std::pair<ndd::idInt, float>> search(const SparseVector& query, size_t k, const ndd::RoaringBitmap* filter = nullptr) {
+        std::vector<std::pair<ndd::idInt, float>> search(const SparseVector& query,
+                                                        size_t k,
+                                                        const ndd::RoaringBitmap* filter = nullptr)
+        {
             return sparse_index_->search(query, k, filter);
         }
 
