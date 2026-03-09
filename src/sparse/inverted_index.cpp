@@ -41,7 +41,7 @@ namespace ndd {
             header.nr_live_entries = static_cast<uint32_t>(new_live);
         }
 
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
         using SteadyClock = std::chrono::steady_clock;
 
         inline uint64_t elapsedNsSince(const SteadyClock::time_point& start) {
@@ -106,10 +106,10 @@ namespace ndd {
         private:
             SteadyClock::time_point start_;
         };
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
     }  // namespace
 
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
     void printSparseSearchDebugStats() {
         SparseSearchDebugStats& stats = sparseSearchDebugStats();
         const uint64_t visited = stats.phase3_iterators_visited.exchange(0, std::memory_order_relaxed);
@@ -258,7 +258,7 @@ namespace ndd {
 #else
     void printSparseSearchDebugStats() {}
     void printSparseUpdateDebugStats() {}
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
 
     InvertedIndex::InvertedIndex(MDBX_env* env, size_t vocab_size)
         : env_(env), blocked_term_postings_dbi_(0), vocab_size_(vocab_size) {}
@@ -347,7 +347,7 @@ namespace ndd {
             LOG_TIME("search phase 1");
 
         // Build one iterator per live query term. Each iterator owns a cursor and lazily
-        // streams the term's block rows instead of materializing the whole posting list.
+        // streams the term's block rows instead of pulling the whole posting list in memory.
         for (size_t qi = 0; qi < query.indices.size(); qi++) {
             uint32_t term_id = query.indices[qi];
             if (term_id == kMetadataTermId) continue;
@@ -442,10 +442,10 @@ namespace ndd {
             // implicit as (current_block_nr, doc_offsets[idx]) to avoid rebuilding them eagerly.
             for (size_t i = 0; i < iters.size(); i++) {
                 PostingListIterator* it = iters[i];
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                 sparseSearchDebugStats().phase3_iterators_visited.fetch_add(1, std::memory_order_relaxed);
                 bool phase3_contributed = false;
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
                 if (it->current_doc_id > batch_end) {
                     continue;
                 }
@@ -471,9 +471,9 @@ namespace ndd {
                         if (vals[idx] > 0.0f) {
                             size_t local = static_cast<size_t>(local_base + offsets[idx]);
                             scores_buf[local] += vals[idx] * qw;
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                             phase3_contributed = true;
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
                         }
                         idx++;
                     }
@@ -513,9 +513,9 @@ namespace ndd {
                         if (vals[idx] > 0) {
                             size_t local = static_cast<size_t>(local_base + offsets[idx]);
                             scores_buf[local] += ((float)vals[idx] * scale) * qw;
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                             phase3_contributed = true;
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
                         }
                         idx++;
                     }
@@ -543,12 +543,12 @@ namespace ndd {
 
                 it->current_entry_idx = idx;
                 it->advanceToNextLive();
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                 if (phase3_contributed) {
                     sparseSearchDebugStats().phase3_iterators_contributed.fetch_add(
                             1, std::memory_order_relaxed);
                 }
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
             }
             }
 
@@ -1225,20 +1225,20 @@ namespace ndd {
 
         // Reorganize the batch by term so each term can be merged into its posting list
         // independently. The on-disk structure is term-major.
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
         SparseUpdateDebugStats& update_stats = sparseUpdateDebugStats();
         update_stats.add_batch_calls.fetch_add(1, std::memory_order_relaxed);
         update_stats.add_batch_docs.fetch_add(docs.size(), std::memory_order_relaxed);
         uint64_t raw_update_count = 0;
         const auto build_term_updates_start = SteadyClock::now();
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
 
         std::unordered_map<uint32_t, std::vector<std::pair<ndd::idInt, float>>> term_updates;
 
         for (const auto& [doc_id, sparse_vec] : docs) {
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
             raw_update_count += sparse_vec.indices.size();
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
             for (size_t i = 0; i < sparse_vec.indices.size(); i++) {
                 uint32_t term_id = sparse_vec.indices[i];
                 if (term_id == kMetadataTermId) {
@@ -1249,17 +1249,17 @@ namespace ndd {
             }
         }
 
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
         update_stats.add_batch_raw_updates.fetch_add(raw_update_count, std::memory_order_relaxed);
         update_stats.add_batch_terms.fetch_add(term_updates.size(), std::memory_order_relaxed);
         update_stats.build_term_updates_total_ns.fetch_add(
                 elapsedNsSince(build_term_updates_start), std::memory_order_relaxed);
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
 
         for (auto& [term_id, updates] : term_updates) {
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
             const auto sort_dedup_start = SteadyClock::now();
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
 
             // Merge logic below assumes doc_ids are sorted and unique per term within this batch.
             std::sort(updates.begin(), updates.end(),
@@ -1276,12 +1276,12 @@ namespace ndd {
                 }
             }
 
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
             update_stats.sort_dedup_total_ns.fetch_add(
                     elapsedNsSince(sort_dedup_start), std::memory_order_relaxed);
             update_stats.add_batch_deduped_updates.fetch_add(
                     deduped.size(), std::memory_order_relaxed);
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
 
             bool header_found = false;
             PostingListHeader header = readPostingListHeader(txn, term_id, &header_found);
@@ -1296,9 +1296,9 @@ namespace ndd {
                     ui++;
                 }
 
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                 update_stats.add_batch_blocks.fetch_add(1, std::memory_order_relaxed);
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
 
                 // One MDBX record stores exactly one (term, block_nr) slice, so split the
                 // term's updates into block-local chunks before merging.
@@ -1310,9 +1310,9 @@ namespace ndd {
                 float old_block_max = 0.0f;
                 bool block_found = false;
 
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                 const auto load_block_start = SteadyClock::now();
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
                 bool load_ok = loadBlockEntries(txn,
                                                 term_id,
                                                 block_nr,
@@ -1320,20 +1320,20 @@ namespace ndd {
                                                 &old_live_count,
                                                 &old_block_max,
                                                 &block_found);
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                 update_stats.load_block_calls.fetch_add(1, std::memory_order_relaxed);
                 update_stats.load_block_total_ns.fetch_add(
                         elapsedNsSince(load_block_start), std::memory_order_relaxed);
                 update_stats.load_block_entries_total.fetch_add(
                         existing.size(), std::memory_order_relaxed);
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
                 if (!load_ok) {
                     return false;
                 }
 
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                 const auto merge_start = SteadyClock::now();
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
                 // Classic merge of two sorted streams: existing postings in the block and the
                 // incoming updates for that same block.
                 std::vector<PostingListEntry> merged;
@@ -1378,7 +1378,7 @@ namespace ndd {
                     //TODO: print a NOTSUPPORTED warning if e.value < 0 
                 }
 
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                 update_stats.merge_block_calls.fetch_add(1, std::memory_order_relaxed);
                 update_stats.merge_block_total_ns.fetch_add(
                         elapsedNsSince(merge_start), std::memory_order_relaxed);
@@ -1388,7 +1388,7 @@ namespace ndd {
                         block_updates.size(), std::memory_order_relaxed);
                 update_stats.merge_output_entries_total.fetch_add(
                         merged.size(), std::memory_order_relaxed);
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
 
                 uint32_t old_total = static_cast<uint32_t>(existing.size());
                 uint32_t new_total = static_cast<uint32_t>(merged.size());
@@ -1400,22 +1400,22 @@ namespace ndd {
                 if (merged.empty()) {
                     if (!deleteBlock(txn, term_id, block_nr)) return false;
                 } else {
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                     const auto save_block_start = SteadyClock::now();
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
                     bool save_ok = saveBlockEntries(txn,
                                                     term_id,
                                                     block_nr,
                                                     merged,
                                                     new_live_count,
                                                     new_block_max);
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                     update_stats.save_block_calls.fetch_add(1, std::memory_order_relaxed);
                     update_stats.save_block_total_ns.fetch_add(
                             elapsedNsSince(save_block_start), std::memory_order_relaxed);
                     update_stats.save_block_entries_total.fetch_add(
                             merged.size(), std::memory_order_relaxed);
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
                     if (!save_ok) {
                         return false;
                     }
@@ -1448,15 +1448,15 @@ namespace ndd {
 
             // Recompute the term max only when the previous max might have been invalidated.
             if (need_recompute_max) {
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                 const auto recompute_max_start = SteadyClock::now();
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
                 header.max_value = recomputeGlobalMaxFromBlocks(txn, term_id);
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
                 update_stats.recompute_max_calls.fetch_add(1, std::memory_order_relaxed);
                 update_stats.recompute_max_total_ns.fetch_add(
                         elapsedNsSince(recompute_max_start), std::memory_order_relaxed);
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
             } //while (ui < deduped.size())
 
             if (header.nr_live_entries == 0) {
@@ -1723,9 +1723,9 @@ namespace ndd {
 
     bool InvertedIndex::PostingListIterator::parseCurrentKV(const MDBX_val& key,
                                                             const MDBX_val& data) {
-#ifdef ND_DEBUG
+#ifdef ND_SPARSE_INSTRUMENT
         ParseCurrentKVTimer parse_timer;
-#endif // ND_DEBUG
+#endif // ND_SPARSE_INSTRUMENT
         if (key.iov_len != sizeof(uint64_t)) {
             return false;
         }

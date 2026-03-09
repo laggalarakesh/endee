@@ -80,6 +80,12 @@ if(ND_DEBUG)
     add_definitions(-DND_DEBUG)
 endif()
 
+# Sparse instrumentation can be enabled independently from ND_DEBUG.
+option(ND_SPARSE_INSTRUMENT "Enable sparse index timing instrumentation" OFF)
+if(ND_SPARSE_INSTRUMENT)
+    add_definitions(-DND_SPARSE_INSTRUMENT)
+endif()
+
 # MDBX instrumentation can be enabled independently from ND_DEBUG.
 option(ND_MDBX_INSTRUMENT "Enable MDBX timing instrumentation" OFF)
 if(ND_MDBX_INSTRUMENT)
