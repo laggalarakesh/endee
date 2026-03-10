@@ -620,7 +620,7 @@ public:
         std::unique_ptr<ndd::SparseVectorStorage> sparse_storage = nullptr;
         if(config.sparse_dim > 0) {
             std::string sparse_storage_dir = index_dir + "/sparse";
-            sparse_storage = std::make_unique<ndd::SparseVectorStorage>(sparse_storage_dir);
+            sparse_storage = std::make_unique<ndd::SparseVectorStorage>(sparse_storage_dir, index_id);
             if(!sparse_storage->initialize()) {
                 throw std::runtime_error("Failed to initialize sparse storage");
             }
@@ -734,7 +734,7 @@ public:
         std::unique_ptr<ndd::SparseVectorStorage> sparse_storage;
         if(sparse_dim > 0) {
             std::string sparse_storage_dir = index_dir + "/sparse";
-            sparse_storage = std::make_unique<ndd::SparseVectorStorage>(sparse_storage_dir);
+            sparse_storage = std::make_unique<ndd::SparseVectorStorage>(sparse_storage_dir, index_id);
             if(!sparse_storage->initialize()) {
                 throw std::runtime_error("Failed to initialize sparse storage for index: "
                                          + index_id);

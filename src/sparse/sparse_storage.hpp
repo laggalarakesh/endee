@@ -17,8 +17,9 @@ namespace ndd {
     // inverted index in the same MDBX environment and updates them transactionally.
     class SparseVectorStorage {
     public:
-        explicit SparseVectorStorage(const std::string& db_path) :
+        SparseVectorStorage(const std::string& db_path, const std::string& index_id) :
             db_path_(db_path),
+            index_id_(index_id),
             env_(nullptr) {
             sparse_index_ = nullptr;
         }
@@ -31,12 +32,14 @@ namespace ndd {
                 return false;
             }
 
-            sparse_index_ = std::make_unique<InvertedIndex>(env_, 0);  // Vocab size unknown/dynamic
+            sparse_index_ = std::make_unique<InvertedIndex>(env_, 0, index_id_);
             if(!sparse_index_->initialize()) {
                 return false;
             }
 
             updateVectorCount();
+            LOG_INFO("[" << index_id_ << "] SparseVectorStorage initialized at " << db_path_
+                     << " with " << vector_count_ << " vectors");
             return true;
         }
 
@@ -119,7 +122,8 @@ namespace ndd {
                 // terms from the inverted index, then delete the raw payload row.
                 auto vec = get_vector(doc_id);
                 if(!vec) {
-                    return false;  // Not found
+                    LOG_WARN("[" << storage_->index_id_ << "] delete_vector: doc_id=" << doc_id << " not found");
+                    return false;
                 }
 
                 if(!storage_->sparse_index_->removeDocument(txn_, doc_id, *vec)) {
@@ -166,12 +170,14 @@ namespace ndd {
 
             for(const auto& [doc_id, sparse_vec] : batch) {
                 if(!storeVectorInternal(txn->getTxn(), doc_id, sparse_vec)) {
+                    LOG_ERROR("[" << index_id_ << "] store_vectors_batch: storeVectorInternal failed for doc_id=" << doc_id);
                     txn->abort();
                     return false;
                 }
             }
 
             if(!sparse_index_->addDocumentsBatch(txn->getTxn(), batch)) {
+                LOG_ERROR("[" << index_id_ << "] store_vectors_batch: addDocumentsBatch failed for batch of " << batch.size());
                 txn->abort();
                 return false;
             }
@@ -189,7 +195,7 @@ namespace ndd {
             return false;
         }
 
-        /*NOT BEING USED*/
+        /*NOT BEING USED FOR NOW*/
 #if 0
         bool delete_vectors_batch(const std::vector<ndd::idInt>& doc_ids) {
             std::unique_lock<std::shared_mutex> lock(mutex_);
@@ -217,6 +223,7 @@ namespace ndd {
 
     private:
         std::string db_path_;
+        std::string index_id_;
         MDBX_env* env_;
         MDBX_dbi docs_dbi_;
 
@@ -301,7 +308,12 @@ namespace ndd {
             data.iov_base = packed.data();
             data.iov_len = packed.size();
 
-            return mdbx_put(txn, docs_dbi_, &key, &data, MDBX_UPSERT) == 0;
+            int rc = mdbx_put(txn, docs_dbi_, &key, &data, MDBX_UPSERT);
+            if (rc != 0) {
+                LOG_ERROR("[" << index_id_ << "] storeVectorInternal: mdbx_put failed for doc_id=" << doc_id
+                          << ": " << mdbx_strerror(rc));
+            }
+            return rc == 0;
         }
 
         std::optional<SparseVector> getVectorInternal(MDBX_txn* txn, ndd::idInt doc_id) const {
@@ -320,7 +332,12 @@ namespace ndd {
             MDBX_val key;
             key.iov_base = &doc_id;
             key.iov_len = sizeof(ndd::idInt);
-            return mdbx_del(txn, docs_dbi_, &key, nullptr) == 0;
+            int rc = mdbx_del(txn, docs_dbi_, &key, nullptr);
+            if (rc != 0 && rc != MDBX_NOTFOUND) {
+                LOG_ERROR("[" << index_id_ << "] deleteVectorInternal: mdbx_del failed for doc_id=" << doc_id
+                          << ": " << mdbx_strerror(rc));
+            }
+            return rc == 0;
         }
 
         void updateVectorCount() {

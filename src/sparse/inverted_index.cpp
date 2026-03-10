@@ -261,8 +261,8 @@ namespace ndd {
     void printSparseUpdateDebugStats() {}
 #endif // ND_SPARSE_INSTRUMENT
 
-    InvertedIndex::InvertedIndex(MDBX_env* env, size_t vocab_size)
-        : env_(env), blocked_term_postings_dbi_(0), vocab_size_(vocab_size) {}
+    InvertedIndex::InvertedIndex(MDBX_env* env, size_t vocab_size, const std::string& index_id)
+        : env_(env), blocked_term_postings_dbi_(0), vocab_size_(vocab_size), index_id_(index_id) {}
 
     void InvertedIndex::applyHeaderDelta(PostingListHeader& header,
                                         int64_t total_delta,
@@ -298,7 +298,7 @@ namespace ndd {
 
             // Fresh database — write the superblock.
             sb.format_version = settings::SPARSE_ONDISK_VERSION;
-            LOG_INFO("Writing fresh sparse superblock (version="
+            LOG_INFO("[" << index_id_ << "] Writing fresh sparse superblock (version="
                      << (int)settings::SPARSE_ONDISK_VERSION << ")");
             if (!writeSuperBlock(txn, sb)) {
                 return false;
@@ -355,7 +355,7 @@ namespace ndd {
             return false;
         }
 
-        LOG_INFO("Sparse index initialized: " << term_info_.size() << " terms loaded");
+        LOG_INFO("[" << index_id_ << "] Sparse index initialized: " << term_info_.size() << " terms loaded");
         return true;
     }
 
@@ -496,7 +496,7 @@ namespace ndd {
 
             auto info_it = term_info_.find(term_id);
             if (info_it == term_info_.end()) {
-                LOG_WARN("search: query term_id=" << term_id << " not in term_info_, skipping");
+                LOG_WARN("[" << index_id_ << "] search: query term_id=" << term_id << " not in term_info_, skipping");
                 continue;
             }
 
@@ -509,7 +509,7 @@ namespace ndd {
             MDBX_cursor* cursor = nullptr;
             rc = mdbx_cursor_open(txn, blocked_term_postings_dbi_, &cursor);
             if (rc != MDBX_SUCCESS) {
-                LOG_ERROR("search: mdbx_cursor_open failed for term " << term_id
+                LOG_ERROR("[" << index_id_ << "] search: mdbx_cursor_open failed for term " << term_id
                           << ": " << mdbx_strerror(rc));
                 continue;
             }
@@ -1316,7 +1316,7 @@ namespace ndd {
 
         mdbx_cursor_close(cursor);
         mdbx_txn_abort(txn);
-        LOG_INFO("loadTermInfo: loaded " << term_info_.size() << " active terms");
+        LOG_INFO("[" << index_id_ << "] loadTermInfo: loaded " << term_info_.size() << " active terms");
         return true;
     }
 
@@ -1481,10 +1481,10 @@ namespace ndd {
                         new_live_in_block++;
                         if (e.value > new_block_max) new_block_max = e.value;
                     } else if (e.value == 0.0f) {
-                        LOG_WARN("addDocumentsBatch: zero value for term " << term_id
+                        LOG_WARN("[" << index_id_ << "] addDocumentsBatch: zero value for term " << term_id
                                  << ", entry will be treated as deleted");
                     } else {
-                        LOG_WARN("addDocumentsBatch: negative value " << e.value
+                        LOG_WARN("[" << index_id_ << "] addDocumentsBatch: negative value " << e.value
                                  << " for term " << term_id << ", treating as dead");
                     }
                 }
