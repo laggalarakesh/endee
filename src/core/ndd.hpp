@@ -1329,8 +1329,11 @@ public:
                 bool include_vectors = false,
                 size_t ef = 0)
     {
-        // Keep the hybrid weights local for now. The next API step can pass one weight
-        // per ranked list and reuse the same weighted RRF accumulation below.
+        /**
+         * Keep the hybrid weights local for now. The next API step can pass one weight
+         * per ranked list and reuse the same weighted RRF accumulation below.
+         * TODO: to be received from search API.
+         */
         constexpr float kDenseRrfWeight = 0.5f;
         constexpr float kSparseRrfWeight = 0.5f;
         constexpr float kRrfRankConstant = 60.0f;
