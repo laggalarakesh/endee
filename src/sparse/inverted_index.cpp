@@ -409,6 +409,7 @@ namespace ndd {
         return search(query, k, 0, filter);
     }
 
+    //log(1 + (N - df + 0.5)/(df + 0.5))
     float InvertedIndex::get_IDF(size_t total_nr_docs, size_t nr_live_docs_with_term) {
         if (total_nr_docs == 0) {
             return 0.0f;
@@ -420,6 +421,24 @@ namespace ndd {
         const double ratio = (total_docs - doc_freq + 0.5) / (doc_freq + 0.5);
         return static_cast<float>(std::log(1.0 + ratio));
     }
+
+#if 0
+    /**
+     * There are many implementations of IDF.
+     * We can make a library of implementations later.
+     */
+    float InvertedIndex::get_IDF(size_t total_nr_docs, size_t nr_live_docs_with_term) {
+        return 1;
+        if (total_nr_docs == 0) {
+            return 0.0f;
+        }
+
+        const size_t clamped_df = std::min(total_nr_docs, nr_live_docs_with_term);
+        const double total_docs = static_cast<double>(total_nr_docs);
+
+        return std::log(total_docs + 1) - std::log(clamped_df + 0.5);
+    }
+#endif //if 0
 
     template <bool StoreFloats>
     bool InvertedIndex::accumulateBatchScores(PostingListIterator* it,
@@ -590,6 +609,7 @@ namespace ndd {
         
 
         bool use_pruning = (iters.size() > 1);
+        use_pruning = false;
         float best_min_score = 0.0f;
 
         std::vector<float> scores_buf(settings::INV_IDX_SEARCH_BATCH_SZ, 0.0f);

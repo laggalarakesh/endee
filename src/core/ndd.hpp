@@ -911,13 +911,19 @@ public:
             // Handle Sparse Vectors if storage is initialized
             if(entry.sparse_storage) {
                 if constexpr(std::is_same_v<VectorType, ndd::HybridVectorObject>) {
+                    /**
+                     * Forward every hybrid doc, including empty sparse payloads, so the sparse
+                     * storage layer can treat upserts as replacements and clear old sparse state.
+                     */
                     std::vector<std::pair<ndd::idInt, ndd::SparseVector>> sparse_batch;
                     sparse_batch.reserve(vectors.size());
 
                     for(size_t i = 0; i < vectors.size(); ++i) {
                         const auto& vec = vectors[i];
+                        ndd::SparseVector sparse_vec;
                         if(!vec.sparse_ids.empty()) {
-                            // Sort indices and values together
+                            // Sort indices and values together so replacement writes preserve the
+                            // inverted index ordering invariants.
                             std::vector<std::pair<uint32_t, float>> pairs;
                             pairs.reserve(vec.sparse_ids.size());
                             for(size_t k = 0; k < vec.sparse_ids.size(); ++k) {
@@ -927,20 +933,25 @@ public:
                                 return a.first < b.first;
                             });
 
-                            ndd::SparseVector sparse_vec;
                             sparse_vec.indices.reserve(pairs.size());
                             sparse_vec.values.reserve(pairs.size());
                             for(const auto& p : pairs) {
                                 sparse_vec.indices.push_back(p.first);
                                 sparse_vec.values.push_back(p.second);
                             }
-
-                            sparse_batch.emplace_back(numeric_ids[i].first, std::move(sparse_vec));
                         }
+
+                        sparse_batch.emplace_back(numeric_ids[i].first, std::move(sparse_vec));
                     }
 
                     if(!sparse_batch.empty()) {
-                        entry.sparse_storage->store_vectors_batch(sparse_batch);
+                        if(!entry.sparse_storage->store_vectors_batch(sparse_batch)) {
+                            LOG_ERROR(2053,
+                                      index_id,
+                                      "Failed to update sparse storage for batch size "
+                                              << sparse_batch.size());
+                            return false;
+                        }
                     }
                 }
             }
