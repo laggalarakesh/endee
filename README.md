@@ -1,20 +1,25 @@
-<div style="text-align:center; padding:20px;">
+<p align="center">
+  <h1 align="center">🤖 AI Knowledge Chatbot</h1>
+  <p align="center">
+    <b>AI-powered document assistant using vector search, RAG, and semantic retrieval built on Endee concepts.</b>
+  </p>
+</p>
 
-<h1>🤖 AI Knowledge Chatbot</h1>
+<p align="center">
+  <img src="https://img.shields.io/badge/Quick_Start-Run_Project-success?style=flat-square"/>
+  <img src="https://img.shields.io/badge/AI-Features-blue?style=flat-square"/>
+  <img src="https://img.shields.io/badge/Vector_DB-Endee-orange?style=flat-square"/>
+</p>
 
-<p><b>AI-powered document assistant using vector search, RAG, and semantic retrieval built on Endee concepts.</b></p>
-
-<div style="margin:10px;">
-  <span style="background:#28a745;color:white;padding:6px 12px;border-radius:6px;margin:5px;">Quick Start</span>
-  <span style="background:#007bff;color:white;padding:6px 12px;border-radius:6px;margin:5px;">AI Features</span>
-  <span style="background:#fd7e14;color:white;padding:6px 12px;border-radius:6px;margin:5px;">Endee Vector DB</span>
-</div>
-
-</div>
-
-<hr>
-
-<h2>📌 Project Overview</h2>
+<p align="center">
+<strong>
+<a href="#quick-start">Quick Start</a> •
+<a href="#system-design">System Design</a> •
+<a href="#features">Features</a> •
+<a href="#tech-stack">Tech Stack</a>
+</strong>
+</p>
+<h2> Project Overview</h2>
 
 <p>
 This project is an <b>AI-powered Knowledge Chatbot</b> that allows users to upload documents (TXT, PDF, DOCX) and interact with them using natural language queries.
@@ -33,7 +38,7 @@ It demonstrates real-world AI capabilities such as:
 
 <hr>
 
-<h2>🎯 Why This Project</h2>
+<h2> Why This Project</h2>
 
 <ul>
 <li>Intelligent document understanding</li>
@@ -44,7 +49,7 @@ It demonstrates real-world AI capabilities such as:
 
 <hr>
 
-<h2>🚀 Quick Start</h2>
+<h2> Quick Start</h2>
 
 <pre style="background:#f4f4f4;padding:10px;border-radius:8px;">
 git clone https://github.com/your-username/endee-ai-assistant.git
@@ -60,7 +65,7 @@ streamlit run app.py
 
 <hr>
 
-<h2>📄 Detailed Project Description</h2>
+<h2> Detailed Project Description</h2>
 
 <p>
 This project presents a comprehensive implementation of an AI-powered Knowledge Chatbot designed to interact intelligently with user-provided documents. Users can upload TXT, PDF, or DOCX files and ask natural language questions related to the content.
@@ -88,7 +93,7 @@ Additionally, a recommendation system suggests related topics based on similarit
 
 <hr>
 
-<h2>🧠 System Design</h2>
+<h2> System Design</h2>
 
 <pre style="background:#f4f4f4;padding:10px;border-radius:8px;">
 User Input
@@ -108,7 +113,7 @@ Final Answer + Recommendations
 
 <hr>
 
-<h2>⚙️ Tech Stack</h2>
+<h2> Tech Stack</h2>
 
 <ul>
 <li>Python</li>
@@ -121,7 +126,7 @@ Final Answer + Recommendations
 
 <hr>
 
-<h2>📂 Project Structure</h2>
+<h2> Project Structure</h2>
 
 <pre style="background:#f4f4f4;padding:10px;border-radius:8px;">
 endee-ai-assistant/
@@ -135,20 +140,20 @@ endee-ai-assistant/
 
 <hr>
 
-<h2>📊 Example Output</h2>
+<h2> Example Output</h2>
 
 <pre style="background:#eafaf1;padding:10px;border-radius:8px;">
-📚 Answer:
+ Answer:
 Deepfake is a type of synthetic media created using AI.
 
-🔎 Related Topics:
+ Related Topics:
 • Deep learning uses neural networks.
 • AI is used in media applications.
 </pre>
 
 <hr>
 
-<h2>🚀 Practical Use Cases</h2>
+<h2> Practical Use Cases</h2>
 
 <ul>
 <li>Document-based Q&A systems</li>
@@ -159,6 +164,6 @@ Deepfake is a type of synthetic media created using AI.
 
 <hr>
 
-<h2>👨‍💻 Developed By</h2>
+<h2> Developed By</h2>
 
 <p><b>Laggala Rakesh</b></p>
