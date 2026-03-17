@@ -2,170 +2,169 @@ import streamlit as st
 import json
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+import os
+from PyPDF2 import PdfReader
+from docx import Document
 
-# Page config
-st.set_page_config(
-    page_title="AI Knowledge Assistant",
-    page_icon="🤖",
-    layout="wide"
-)
+# ===============================
+# ⚙️ CONFIG
+# ===============================
+st.set_page_config(page_title="AI Chatbot", page_icon="🤖", layout="wide")
 
-# Load embedding model
 model = SentenceTransformer('all-MiniLM-L6-v2')
+VECTOR_FILE = "data/vector_store.json"
 
-# Load vector store
-with open("data/vector_store.json", "r", encoding="utf-8") as f:
-    vector_store = json.load(f)
+# ===============================
+# 📦 VECTOR DB FUNCTIONS
+# ===============================
+def load_vectors():
+    if os.path.exists(VECTOR_FILE):
+        with open(VECTOR_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 
+def save_vectors(data):
+    with open(VECTOR_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
 
-# Semantic search function
-def semantic_search(query, top_k=3):
+# ===============================
+# 📄 FILE EXTRACTION
+# ===============================
+def extract_text_from_pdf(file):
+    reader = PdfReader(file)
+    text = ""
+    for page in reader.pages:
+        if page.extract_text():
+            text += page.extract_text() + "\n"
+    return text
+
+def extract_text_from_docx(file):
+    doc = Document(file)
+    return "\n".join([para.text for para in doc.paragraphs])
+
+# ===============================
+# 🧠 STORE DOCUMENT (FIXED)
+# ===============================
+def store_uploaded_doc(text, replace=True):
+    if replace:
+        data = []  # clear old DB
+    else:
+        data = load_vectors()
+
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+
+    for line in lines:
+        embedding = model.encode(line).tolist()
+        data.append({"text": line, "embedding": embedding})
+
+    save_vectors(data)
+
+# ===============================
+# 🔍 SEARCH (FIXED)
+# ===============================
+def search_with_scores(query, top_k=3):
+    data = load_vectors()  # always reload
+
+    if len(data) == 0:
+        return []
+
     query_embedding = model.encode(query).reshape(1, -1)
 
     scores = []
 
-    for record in vector_store:
+    for record in data:
         doc_embedding = [record["embedding"]]
-        similarity = cosine_similarity(query_embedding, doc_embedding)[0][0]
-
-        scores.append((similarity, record["text"]))
+        sim = cosine_similarity(query_embedding, doc_embedding)[0][0]
+        scores.append((sim, record["text"]))
 
     scores.sort(reverse=True)
 
-    return [text for _, text in scores[:top_k]]
+    return scores[:top_k]
 
+# ===============================
+# 🎯 RELEVANCE CHECK (FIXED)
+# ===============================
+def is_relevant(results, threshold=0.3):  # lowered threshold
+    if not results:
+        return False
+    return results[0][0] > threshold
 
-# Header
-st.title("🤖 AI Knowledge Assistant")
-st.markdown("Powered by **Endee Vector Database**")
+# ===============================
+# 🎨 UI
+# ===============================
+st.title("🤖 AI Knowledge Chatbot")
+st.markdown("Upload document + Ask questions in one place")
 
-st.markdown("---")
+# Chat memory
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
-# Sidebar menu
-menu = st.sidebar.radio(
-    "Choose Feature",
-    [
-        "🏠 Home",
-        "🔍 Semantic Search",
-        "❓ Ask Question (RAG)",
-        "⭐ Recommendations",
-        "🧠 AI Agent Workflow"
-    ]
+# ===============================
+# 📤 Upload Document
+# ===============================
+uploaded_file = st.file_uploader(
+    "Upload TXT / PDF / DOCX",
+    type=["txt", "pdf", "docx"]
 )
 
-# Home Page
-if menu == "🏠 Home":
+if uploaded_file:
+    file_type = uploaded_file.name.split(".")[-1]
 
-    st.header("Welcome to AI Knowledge Assistant")
+    if file_type == "txt":
+        content = uploaded_file.read().decode("utf-8")
 
-    st.write(
-        """
-This application demonstrates how **vector databases and embeddings** 
-can power intelligent AI systems.
+    elif file_type == "pdf":
+        content = extract_text_from_pdf(uploaded_file)
 
-Features included:
-- Semantic Search
-- Retrieval Augmented Generation (RAG)
-- Recommendation System
-- Agentic AI Workflow
-"""
-    )
+    elif file_type == "docx":
+        content = extract_text_from_docx(uploaded_file)
 
-    col1, col2 = st.columns(2)
+    else:
+        content = ""
 
-    with col1:
-        st.info("🔍 Semantic Search\n\nFind documents using meaning instead of keywords.")
+    st.subheader("Preview")
+    st.text(content[:500])
 
-        st.info("❓ RAG Question Answering\n\nAsk questions and retrieve answers from knowledge base.")
+    if st.button("📥 Store Document"):
+        store_uploaded_doc(content, replace=True)
+        st.success("✅ Document stored (old data cleared)")
 
-    with col2:
-        st.info("⭐ Recommendation Engine\n\nGet related topic suggestions.")
+# ===============================
+# 💬 Chat Input
+# ===============================
+user_input = st.chat_input("Ask about your document...")
 
-        st.info("🧠 AI Agent\n\nAutomated workflow combining search, reasoning and suggestions.")
+if user_input:
 
+    st.session_state.chat_history.append(("user", user_input))
 
-# Semantic Search
-elif menu == "🔍 Semantic Search":
+    results = search_with_scores(user_input)
 
-    st.header("🔍 Semantic Search")
+    # ❌ Not relevant
+    if not is_relevant(results):
+        bot_reply = "❌ This question is not related to your document."
 
-    query = st.text_input("Enter search query")
+    # ✅ Relevant
+    else:
+        context = "\n".join([text for _, text in results])
 
-    if st.button("Search"):
+        answer = f"📚 Answer:\n{context}"
 
-        results = semantic_search(query)
+        recs = [text for _, text in results[:2]]
 
-        st.subheader("Results")
-
-        for r in results:
-            st.success(r)
-
-
-# RAG Question Answering
-elif menu == "❓ Ask Question (RAG)":
-
-    st.header("❓ Ask a Question")
-
-    question = st.text_input("Enter your question")
-
-    if st.button("Generate Answer"):
-
-        docs = semantic_search(question)
-
-        st.subheader("Retrieved Knowledge")
-
-        for d in docs:
-            st.write("•", d)
-
-        context = " ".join(docs)
-
-        st.subheader("Generated Answer")
-
-        st.info(context)
-
-
-# Recommendation System
-elif menu == "⭐ Recommendations":
-
-    st.header("⭐ Topic Recommendations")
-
-    topic = st.text_input("Enter a topic")
-
-    if st.button("Get Recommendations"):
-
-        recs = semantic_search(topic)
-
-        st.subheader("Recommended Topics")
-
+        bot_reply = answer + "\n\n🔎 Related Topics:\n"
         for r in recs:
-            st.success(r)
+            bot_reply += f"- {r}\n"
 
+    st.session_state.chat_history.append(("bot", bot_reply))
 
-# AI Agent Workflow
-elif menu == "🧠 AI Agent Workflow":
-
-    st.header("🧠 AI Research Agent")
-
-    query = st.text_input("Enter topic or question")
-
-    if st.button("Run AI Agent"):
-
-        st.subheader("Step 1 — Searching Knowledge Base")
-
-        docs = semantic_search(query)
-
-        for d in docs:
-            st.write("•", d)
-
-        st.subheader("Step 2 — Explanation")
-
-        context = " ".join(docs)
-
-        st.info(context)
-
-        st.subheader("Step 3 — Recommended Topics")
-
-        recs = semantic_search(query)
-
-        for r in recs[:2]:
-            st.success(r)
+# ===============================
+# 💬 Display Chat
+# ===============================
+for role, message in st.session_state.chat_history:
+    if role == "user":
+        with st.chat_message("user"):
+            st.write(message)
+    else:
+        with st.chat_message("assistant"):
+            st.write(message)
