@@ -153,6 +153,12 @@ Deepfake is a type of synthetic media created using AI.
 </pre>
 
 <hr>
+<h2> Actual Output Screenshots</h2>
+
+<p align="center">
+  <img src="https://github.com/laggalarakesh/endee/blob/master/output%201.png" width="45%" style="margin:10px;">
+  <img src="https://github.com/laggalarakesh/endee/blob/master/output%202.png" width="45%" style="margin:10px;">
+</p>
 
 <h2> Practical Use Cases</h2>
 
