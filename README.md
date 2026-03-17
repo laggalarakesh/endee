@@ -1,290 +1,49 @@
-Project Roadmap
-Offline AI Knowledge Assistant using Endee
+<p align="center">
+  <h1 align="center">🤖 AI Knowledge Chatbot</h1>
+  <p align="center">
+    <b>AI-powered document assistant using vector search, RAG, and semantic retrieval built on Endee concepts.</b>
+  </p>
+</p>
 
-Goal: Build one project that demonstrates
+<p align="center">
+    <a href="#quick-start"><img src="https://img.shields.io/badge/Quick_Start-Run_Project-success?style=flat-square"></a>
+    <a href="#features"><img src="https://img.shields.io/badge/Features-AI_Functions-blue?style=flat-square"></a>
+    <a href="#use-of-endee"><img src="https://img.shields.io/badge/Vector_DB-Endee-orange?style=flat-square"></a>
+</p>
 
-Semantic Search
+---
 
-RAG (Retrieval Augmented Generation)
+# AI Knowledge Chatbot: Document-Based AI Assistant
 
-Recommendation System
+This project is an **AI-powered chatbot** that allows users to upload documents (TXT, PDF, DOCX) and interact with them using natural language.
 
-Agentic AI Workflow
+It demonstrates real-world AI capabilities such as:
 
-🗺 Phase 1 — Repository Setup (30–40 minutes)
-Step 1
+- Semantic search  
+- Retrieval Augmented Generation (RAG)  
+- Recommendation systems  
+- Agentic AI workflows  
 
-Open the official repository.
+---
 
-Star it and fork it.
+## Why This Project
 
-Step 2
+- Provides intelligent document understanding  
+- Uses vector embeddings for semantic retrieval  
+- Implements a chatbot interface for real-time interaction  
+- Demonstrates modern AI system design  
 
-Clone your forked repository locally.
+---
 
-Example:
+## Quick Start
 
-git clone https://github.com/your-username/endee
-cd endee
-Step 3
+```bash
+git clone https://github.com/your-username/endee-ai-assistant.git
+cd endee-ai-assistant
 
-Create a project folder inside the repo.
-
-Example:
-
-endee-ai-project
-
-Folder structure:
-
-endee-ai-project
-│
-├── app.py
-├── ingest_data.py
-├── semantic_search.py
-├── rag_pipeline.py
-├── recommendation.py
-├── agent_workflow.py
-├── requirements.txt
-├── README.md
-└── data
-     └── knowledge_base.txt
-🗺 Phase 2 — Environment Setup (20 minutes)
-
-Install dependencies.
-
-Example requirements:
-
-sentence-transformers
-transformers
-torch
-streamlit
-numpy
-pandas
-
-Install:
+python -m venv venv
+venv\Scripts\activate
 
 pip install -r requirements.txt
-🗺 Phase 3 — Prepare Knowledge Dataset (30 minutes)
 
-Create a dataset file.
-
-Example:
-
-data/knowledge_base.txt
-
-Example content:
-
-Artificial Intelligence is the simulation of human intelligence by machines.
-
-Machine learning is a subset of AI that learns from data.
-
-Deep learning uses neural networks with multiple layers.
-
-Vector databases store embeddings for semantic search.
-
-This will be stored in the vector database.
-
-🗺 Phase 4 — Data Ingestion (1 hour)
-
-Goal: Convert text → embeddings → store in Endee.
-
-Steps:
-
-Load documents
-
-Generate embeddings
-
-Store embeddings in Endee vector DB
-
-Flow:
-
-Documents
-   ↓
-Embedding Model
-   ↓
-Vector Representation
-   ↓
-Store in Endee Database
-
-Output:
-
-Vector database containing all knowledge documents.
-
-🗺 Phase 5 — Semantic Search (1 hour)
-
-Goal: Search documents using meaning.
-
-User enters query:
-
-"What is machine learning?"
-
-Process:
-
-Query
- ↓
-Embedding
- ↓
-Vector Search
- ↓
-Top Similar Documents
-
-Return the most relevant documents.
-
-🗺 Phase 6 — RAG Question Answering (1.5 hours)
-
-Goal: Generate answers using retrieved documents.
-
-Pipeline:
-
-User Question
-      ↓
-Embedding
-      ↓
-Endee Search
-      ↓
-Relevant Documents
-      ↓
-Local Language Model
-      ↓
-Generated Answer
-
-Example:
-
-Question:
-
-Explain neural networks
-
-System retrieves documents and generates answer.
-
-🗺 Phase 7 — Recommendation System (45 minutes)
-
-Goal: Suggest similar topics.
-
-Example:
-
-User reads:
-
-Deep Learning
-
-System recommends:
-
-Neural Networks
-Machine Learning
-Artificial Intelligence
-
-Method:
-
-Vector similarity.
-
-🗺 Phase 8 — Agentic AI Workflow (1 hour)
-
-Goal: AI performs multiple tasks automatically.
-
-Example request:
-
-Explain deep learning and suggest resources
-
-Agent performs:
-
-Search database
-
-Retrieve documents
-
-Summarize information
-
-Recommend related topics
-
-Workflow:
-
-User Request
-   ↓
-Search Knowledge Base
-   ↓
-Retrieve Documents
-   ↓
-Generate Summary
-   ↓
-Suggest Related Topics
-🗺 Phase 9 — Build User Interface (1 hour)
-
-Use Streamlit.
-
-Interface layout:
-
-AI Knowledge Assistant
---------------------------
-
-1. Ask Question (RAG)
-2. Semantic Search
-3. Get Recommendations
-4. AI Research Assistant
-
-Example UI elements:
-
-Text input
-Search button
-Answer display
-Recommendation section
-🗺 Phase 10 — Testing (45 minutes)
-
-Test all features.
-
-Check:
-
-✔ Data ingestion
-✔ Semantic search results
-✔ RAG answers
-✔ Recommendations
-✔ Agent workflow
-
-🗺 Phase 11 — GitHub Documentation (1 hour)
-
-Create a good README.
-
-Include:
-
-Project Overview
-
-Explain the problem and solution.
-
-Features
-
-Semantic Search
-
-RAG
-
-Recommendation
-
-AI Workflow
-
-Architecture Diagram
-User
- ↓
-Streamlit UI
- ↓
-Python Backend
- ↓
-Embedding Model
- ↓
-Endee Vector Database
- ↓
-Local AI Model
-Setup Instructions
-git clone repo
-pip install requirements
 streamlit run app.py
-Screenshots
-
-Add UI screenshots.
-
-🗺 Phase 12 — Final Submission
-
-Push project to GitHub.
-
-Example:
-
-git add .
-git commit -m "AI Knowledge Assistant using Endee"
-git push
-
-Then submit the GitHub link in the Google Form
