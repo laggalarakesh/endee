@@ -90,81 +90,172 @@ def is_relevant(results, threshold=0.3):  # lowered threshold
     return results[0][0] > threshold
 
 # ===============================
-# 🎨 UI
+# 🧠 AGENT LOGIC
 # ===============================
-st.title("🤖 AI Knowledge Chatbot")
-st.markdown("Upload document + Ask questions in one place")
+def generate_explanation(query, docs):
+    context = " ".join(docs)
+    explanation = f"""
+Topic: {query}
 
-# Chat memory
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+Explanation based on knowledge base:
+
+{context}
+
+Summary:
+The above information explains the concept and related ideas.
+"""
+    return explanation
 
 # ===============================
-# 📤 Upload Document
+# 🎨 UI & NAVIGATION
 # ===============================
-uploaded_file = st.file_uploader(
-    "Upload TXT / PDF / DOCX",
-    type=["txt", "pdf", "docx"]
+st.sidebar.title("Navigation")
+page = st.sidebar.radio(
+    "Select Feature",
+    ["Chatbot", "Ingest Data", "Semantic Search", "Recommendations", "Agent Workflow"]
 )
 
-if uploaded_file:
-    file_type = uploaded_file.name.split(".")[-1]
+if page == "Chatbot":
+    st.title("🤖 AI Knowledge Chatbot")
+    st.markdown("Upload document + Ask questions in one place")
 
-    if file_type == "txt":
-        content = uploaded_file.read().decode("utf-8")
+    # Chat memory
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
-    elif file_type == "pdf":
-        content = extract_text_from_pdf(uploaded_file)
+    # ===============================
+    # 📤 Upload Document
+    # ===============================
+    uploaded_file = st.file_uploader(
+        "Upload TXT / PDF / DOCX",
+        type=["txt", "pdf", "docx"]
+    )
 
-    elif file_type == "docx":
-        content = extract_text_from_docx(uploaded_file)
+    if uploaded_file:
+        file_type = uploaded_file.name.split(".")[-1]
 
-    else:
-        content = ""
+        if file_type == "txt":
+            content = uploaded_file.read().decode("utf-8")
 
-    st.subheader("Preview")
-    st.text(content[:500])
+        elif file_type == "pdf":
+            content = extract_text_from_pdf(uploaded_file)
 
-    if st.button("📥 Store Document"):
-        store_uploaded_doc(content, replace=True)
-        st.success("✅ Document stored (old data cleared)")
+        elif file_type == "docx":
+            content = extract_text_from_docx(uploaded_file)
 
-# ===============================
-# 💬 Chat Input
-# ===============================
-user_input = st.chat_input("Ask about your document...")
+        else:
+            content = ""
 
-if user_input:
+        st.subheader("Preview")
+        st.text(content[:500])
 
-    st.session_state.chat_history.append(("user", user_input))
+        if st.button("📥 Store Document"):
+            store_uploaded_doc(content, replace=True)
+            st.success("✅ Document stored (old data cleared)")
 
-    results = search_with_scores(user_input)
+    # ===============================
+    # 💬 Chat Input
+    # ===============================
+    user_input = st.chat_input("Ask about your document...")
 
-    # ❌ Not relevant
-    if not is_relevant(results):
-        bot_reply = "❌ This question is not related to your document."
+    if user_input:
 
-    # ✅ Relevant
-    else:
-        context = "\n".join([text for _, text in results])
+        st.session_state.chat_history.append(("user", user_input))
 
-        answer = f"📚 Answer:\n{context}"
+        results = search_with_scores(user_input)
 
-        recs = [text for _, text in results[:2]]
+        # ❌ Not relevant
+        if not is_relevant(results):
+            bot_reply = "❌ This question is not related to your document."
 
-        bot_reply = answer + "\n\n🔎 Related Topics:\n"
-        for r in recs:
-            bot_reply += f"- {r}\n"
+        # ✅ Relevant
+        else:
+            context = "\n".join([text for _, text in results])
 
-    st.session_state.chat_history.append(("bot", bot_reply))
+            answer = f"📚 Answer:\n{context}"
 
-# ===============================
-# 💬 Display Chat
-# ===============================
-for role, message in st.session_state.chat_history:
-    if role == "user":
-        with st.chat_message("user"):
-            st.write(message)
-    else:
-        with st.chat_message("assistant"):
-            st.write(message)
+            recs = [text for _, text in results[:2]]
+
+            bot_reply = answer + "\n\n🔎 Related Topics:\n"
+            for r in recs:
+                bot_reply += f"- {r}\n"
+
+        st.session_state.chat_history.append(("bot", bot_reply))
+
+    # ===============================
+    # 💬 Display Chat
+    # ===============================
+    for role, message in st.session_state.chat_history:
+        if role == "user":
+            with st.chat_message("user"):
+                st.write(message)
+        else:
+            with st.chat_message("assistant"):
+                st.write(message)
+
+elif page == "Ingest Data":
+    st.title("📥 Ingest Data")
+    st.markdown("Load knowledge base directly from `data/knowledge_base.txt`.")
+    if st.button("Start Ingestion"):
+        kb_path = "data/knowledge_base.txt"
+        if os.path.exists(kb_path):
+            with open(kb_path, "r", encoding="utf-8") as f:
+                documents = f.readlines()
+            
+            documents = [doc.strip() for doc in documents if doc.strip()]
+            vector_store = []
+            
+            for idx, text in enumerate(documents):
+                embedding = model.encode(text).tolist()
+                record = {
+                    "id": idx,
+                    "text": text,
+                    "embedding": embedding
+                }
+                vector_store.append(record)
+                
+            save_vectors(vector_store)
+            st.success("✅ Data successfully converted into embeddings and stored.")
+        else:
+            st.error("❌ Knowledge base file not found!")
+
+elif page == "Semantic Search":
+    st.title("🔍 Semantic Search")
+    query = st.text_input("Enter your search query:")
+    if query:
+        results = search_with_scores(query, top_k=3)
+        st.subheader("Top Results:\n")
+        for score, text in results:
+            st.markdown(f"**{score:.3f}** → {text}")
+
+elif page == "Recommendations":
+    st.title("💡 Recommendations")
+    topic = st.text_input("Enter a topic to get recommendations:")
+    if topic:
+        results = search_with_scores(topic, top_k=3)
+        st.subheader("Recommended Topics:\n")
+        for _, text in results:
+            st.markdown(f"- {text}")
+
+elif page == "Agent Workflow":
+    st.title("🤖 Agent Workflow")
+    query = st.text_input("Enter your topic or question:")
+    if query:
+        st.markdown("### Step 1: Searching knowledge base...")
+        results = search_with_scores(query, top_k=3)
+        docs = [text for _, text in results]
+        st.success("Documents retrieved.")
+        
+        st.markdown("### Step 2: Generating explanation...")
+        explanation = generate_explanation(query, docs)
+        
+        st.markdown("### Step 3: Finding related topics...")
+        recommendations = [text for _, text in results[:2]]
+        
+        st.markdown("---")
+        st.markdown("## ===== AI Agent Response =====")
+        st.text(explanation)
+        
+        st.markdown("**Recommended Topics:**")
+        for r in recommendations:
+            st.markdown(f"- {r}")
