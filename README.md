@@ -93,23 +93,24 @@ Additionally, a recommendation system suggests related topics based on similarit
 
 <hr>
 
+
+<div class="section">
 <h2> System Design</h2>
 
-<pre style="background:#f4f4f4;padding:10px;border-radius:8px;">
-User Input
-   ↓
-Embedding Model
-   ↓
-Vector Database (Endee Concept)
-   ↓
-Similarity Search
-   ↓
-Relevant Documents
-   ↓
-RAG Processing
-   ↓
-Final Answer + Recommendations
-</pre>
+<img
+src="https://raw.githubusercontent.com/laggalarakesh/endee/master/system_Design.png"
+alt="System Design"
+style="
+width: 70%;
+max-width: 800px;
+display: block;
+margin: 20px auto;
+border-radius: 10px;
+box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+">
+
+</div>
+
 
 <hr>
 
