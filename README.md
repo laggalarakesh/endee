@@ -164,6 +164,30 @@ Deepfake is a type of synthetic media created using AI.
 </ul>
 
 <hr>
+<div style="
+  background-color: #fff3cd;
+  border-left: 6px solid #ffc107;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 20px 0;
+  font-family: Arial, sans-serif;
+">
+
+  <h3 style="margin-top: 0;"> Note</h3>
+
+  <p>
+    This repository was initially created by forking another project. 
+    During development, the original forked files were replaced with a custom implementation 
+    to better align with the goals of this AI Knowledge Chatbot.
+  </p>
+
+  <p>
+    As a result, some of the original files from the forked repository may no longer be visible. 
+    The current version reflects a fully customized and independently developed project structure.
+  </p>
+
+</div>
+
 
 <h2> Developed By</h2>
 
